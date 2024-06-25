@@ -12,3 +12,32 @@ Octal (con signo + o -)
 Hexadecimal (con signo + o -)
 Funcionalidad para introducir números con parte fraccionaria y realizar conversiones de decimal a binario con 8 bits asociados a la parte fraccional.
 Reutilización de código mediante el uso de macros.
+
+Partes del proyecto:
+
+1. Interface de Usuario (UI)???
+
+Permite la entrada de números en diferentes representaciones numéricas
+Muestra los resultados en cada una de las representaciones numéricas permitidas
+Interactúa con el usuario para recibir la entrada y mostrar los resultados
+
+2. Análisis de Entrada
+
+Analiza la entrada del usuario para determinar la representación numérica original del número
+Verifica la validez de la entrada y devuelve un error si es necesario
+
+3. Macros
+
+decimal_to_bin: Convierte un número decimal a binario en complemento a 2
+decimal_to_dec_emp: Convierte un número decimal a decimal empaquetado
+decimal_to_oct: Convierte un número decimal a octal
+decimal_to_hex: Convierte un número decimal a hexadecimal
+bin_to_decimal: Convierte un número binario en complemento a 2 a decimal
+dec_emp_to_decimal: Convierte un número decimal empaquetado a decimal
+oct_to_decimal: Convierte un número octal a decimal
+hex_to_decimal: Convierte un número hexadecimal a decimal
+
+4. Manejo de Parte Fraccionaria
+
+Maneja la parte fraccionaria de los números, permitiendo la entrada y salida de números con parte fraccionaria
+Realiza las conversiones necesarias para manejar la parte fraccionaria correctamente
