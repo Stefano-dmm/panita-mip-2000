@@ -15,7 +15,7 @@ Reutilización de código mediante el uso de macros.
 
 Partes del proyecto:
 
-1. Interface de Usuario (UI)???
+1. Interface de Usuario (UI)??? /// nos dieron a entender que no era necesario
 
 Permite la entrada de números en diferentes representaciones numéricas
 Muestra los resultados en cada una de las representaciones numéricas permitidas
@@ -41,3 +41,5 @@ hex_to_decimal: Convierte un número hexadecimal a decimal
 
 Maneja la parte fraccionaria de los números, permitiendo la entrada y salida de números con parte fraccionaria
 Realiza las conversiones necesarias para manejar la parte fraccionaria correctamente
+
+Stefano Di Michelangelo y Gabriel Longa
