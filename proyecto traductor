@@ -1,0 +1,354 @@
+# Traductor de números en MIPS
+
+.data
+menu_msg:.asciiz "Seleccione una opción:\n"
+option_msg:.asciiz "Opción: "
+tipo_num_entrada_msg:.asciiz "Tipo de número a entrar:\n1. Binario en Complemento a 2\n2. Decimal Empaquetado\n3. Base 10\n4. Octal\n5. Hexadecimal\n"
+tipo_num_salida_msg:.asciiz "Tipo de número a salir:\n1. Binario en Complemento a 2\n2. Decimal Empaquetado\n3. Base 10\n4. Octal\n5. Hexadecimal\n"
+num_entrada_msg:.asciiz "Ingrese el número: "
+resultado_msg:.asciiz "El resultado es: "
+
+.text
+main:
+    # Imprimir menú
+    la $a0, menu_msg
+    li $v0, 4
+    syscall
+
+loop:
+    # Leer tipo de número a entrar
+    la $a0, tipo_num_entrada_msg
+    li $v0, 4
+    syscall
+    li $v0, 5
+    syscall
+    move $t0, $v0
+
+    # Leer tipo de número a salir
+    la $a0, tipo_num_salida_msg
+    li $v0, 4
+    syscall
+    li $v0, 5
+    syscall
+    move $t1, $v0
+
+    # Leer número a traducir
+    la $a0, num_entrada_msg
+    li $v0, 4
+    syscall
+    li $v0, 5
+    syscall
+    move $t2, $v0
+
+    # Traducir número a binario en complemento a 2
+    beq $t0, 1, bin_to_bin_complement
+    beq $t0, 2, dec_emp_to_bin_complement
+    beq $t0, 3, base10_to_bin_complement
+    beq $t0, 4, octal_to_bin_complement
+    beq $t0, 5, hex_to_bin_complement
+
+bin_to_bin_complement:
+    move $t3, $t2
+    j translate
+
+dec_emp_to_bin_complement:
+    li $t4, 0       # resultado binario en complemento a 2
+    li $t5, 0       # signo (1 si es negativo, 0 si es positivo)
+
+    # obtener el signo del número decimal empaquetado
+    srl $t6, $t2, 31  # obtener el bit de signo del decimal empaquetado
+    beqz $t6, is_positive
+    li $t5, 1       # signo negativo
+
+is_positive:
+    # convertir decimal empaquetado a binario en complemento a 2
+    li $t6, 0x10000000  # máscara para obtener 1 byte a la vez
+loop_dec_emp_to_bin:
+    and $t7, $t2, $t6  # obtener 1 byte del decimal empaquetado
+    sll $t7, $t7, 24  # desplazar el byte a la posición correcta
+    or $t4, $t4, $t7  # agregar el byte al resultado binario
+    srl $t6, $t6, 8    # desplazar la máscara a la derecha
+    bnez $t6, loop_dec_emp_to_bin  # repetir hasta que se hayan procesado todos los bytes
+
+    # ajustar el signo si es negativo
+    beqz $t5, end_function
+    nor $t4, $t4, $zero  # invertir bits
+    addi $t4, $t4, 1  # sumar 1 para obtener el complemento a 2
+
+end_function:
+    move $t3, $t4
+    jr $ra  # return from function
+
+base10_to_bin_complement:
+    li $t4, 0       # resultado binario en complemento a 2
+    li $t5, 0       # signo (1 si es negativo, 0 si es positivo)
+
+    # obtener el signo del número base 10
+    blt $t2, $zero, base10_is_negative
+    j base10_is_positive
+
+base10_is_negative:
+    li $t5, 1       # signo negativo
+    sub $t2, $zero, $t2  # convertir a positivo
+
+base10_is_positive:
+    # convertir base 10 a binario en complemento a 2
+loop_base10_to_bin:
+    beqz $t2, base10_end_loop
+    sll $t4, $t4, 1    # desplazar el resultado binario a la izquierda
+    li $t6, 2
+    div $t2, $t6
+    mfhi $t7
+    beqz $t7, base10_add_zero
+    addi $t4, $t4, 1  # agregar 1 al resultado binario si el resto es 1
+
+base10_add_zero:
+    mflo $t2
+    j loop_base10_to_bin
+
+base10_end_loop:
+    # ajustar el signo si es negativo
+    beqz $t5, base10_end_function
+    nor $t4, $t4, $zero  # invertir bits
+    addi $t4, $t4, 1  # sumar 1 para obtener el complemento a 2
+
+base10_end_function:
+    move $t3, $t4
+    jr $ra  # return from function
+
+octal_to_bin_complement:
+    li $t4, 0       # resultado binario en complemento a 2
+    li $t5, 0       # signo (1 si es negativo, 0 si es positivo)
+
+    # obtener el signo del número octal
+    blt $t2, $zero, octal_is_negative
+    j octal_is_positive
+
+octal_is_negative:
+    li $t5, 1       # signo negativo
+    sub $t2, $zero, $t2  # convertir a positivo
+
+octal_is_positive:
+    # convertir octal a binario en complemento a 2
+loop_octal_to_bin:
+    beqz $t2, octal_end_loop
+    li $t6, 8
+    div $t2, $t6
+    mfhi $t7
+    li $t8, 0x3  # máscara para obtener 3 bits (octal)
+    and $t7, $t7, $t8
+    sll $t7, $t7, 2  # desplazar los 3 bits a la posición correcta
+    or $t4, $t4, $t7  # agregar los 3 bits al resultado binario
+    mflo $t2
+    j loop_octal_to_bin
+
+octal_end_loop:
+    # ajustar el signo si es negativo
+    beqz $t5, octal_end_function
+    nor $t4, $t4, $zero  # invertir bits
+    addi $t4, $t4, 1  # sumar 1 para obtener el complemento a 2
+
+octal_end_function:
+    move $t3, $t4
+    jr $ra  # return from function
+
+hex_to_bin_complement:
+    li $t4, 0       # resultado binario en complemento a 2
+    li $t5, 0       # signo (1 si es negativo, 0 si es positivo)
+
+    # obtener el signo del número hexadecimal
+    blt $t2, $zero, hex_is_negative
+    j hex_is_positive
+
+hex_is_negative:
+    li $t5, 1       # signo negativo
+    sub $t2, $zero, $t2  # convertir a positivo
+
+hex_is_positive:
+    # convertir hexadecimal a binario en complemento a 2
+loop_hex_to_bin:
+    beqz $t2, hex_end_loop
+    li $t6, 16
+    div $t2, $t6
+    mfhi $t7
+    li $t8, 0xF  # máscara para obtener 4 bits (hexadecimal)
+    and $t7, $t7, $t8
+    sll $t7, $t7, 4  # desplazar los 4 bits a la posición correcta
+    or $t4, $t4, $t7  # agregar los 4 bits al resultado binario
+    mflo $t2
+    j loop_hex_to_bin
+
+hex_end_loop:
+    # ajustar el signo si es negativo
+    beqz $t5, hex_end_function
+    nor $t4, $t4, $zero  # invertir bits
+    addi $t4, $t4, 1  # sumar 1 para obtener el complemento a 2
+
+hex_end_function:
+    move $t3, $t4
+    jr $ra  # return from function
+
+translate:
+    # Traducir binario en complemento a 2 al tipo de número deseado
+    beq $t1, 1, bin_complement_to_bin
+    beq $t1, 2, bin_complement_to_dec_emp
+    beq $t1, 3, bin_complement_to_base10
+    beq $t1, 4, bin_complement_to_octal
+    beq $t1, 5, bin_complement_to_hex
+
+bin_complement_to_bin:
+    move $t3, $t3
+    j print_result
+    
+bin_complement_to_dec_emp:
+    li $t4, 0       # resultado decimal empaquetado
+    li $t5, 0       # signo (1 si es negativo, 0 si es positivo)
+
+    # obtener el signo del número binario en complemento a 2
+    blt $t2, $zero, bin_is_negative
+    j bin_is_positive
+
+bin_is_negative:
+    li $t5, 1       # signo negativo
+    nor $t2, $t2, $zero  # invertir bits
+    addi $t2, $t2, 1  # sumar 1 para obtener el valor absoluto
+
+bin_is_positive:
+    # convertir binario en complemento a 2 a decimal empaquetado
+loop_bin_to_dec_emp:
+    beqz $t2, bin_end_loop
+    li $t6, 10
+    div $t2, $t6
+    mfhi $t7
+    sll $t7, $t7, 4  # desplazar los 4 bits a la posición correcta
+    or $t4, $t4, $t7  # agregar los 4 bits al resultado decimal empaquetado
+    mflo $t2
+    j loop_bin_to_dec_emp
+
+bin_end_loop:
+    # agregar el signo al resultado decimal empaquetado
+    beqz $t5, bin_end_function
+    li $t6, 0x0D  # código ASCII para '-'
+    or $t4, $t4, $t6  # agregar el signo al resultado decimal empaquetado
+
+bin_end_function:
+    move $t3, $t4
+    jr $ra  # return from function
+
+bin_complement_to_base10:
+    li $t4, 0       # resultado decimal
+    li $t5, 0       # signo (1 si es negativo, 0 si es positivo)
+
+    # obtener el signo del número binario en complemento a 2
+    blt $t2, $zero, bin_is_negative_base10
+    j bin_is_positive_base10
+
+bin_is_negative_base10:
+    li $t5, 1       # signo negativo
+    nor $t2, $t2, $zero  # invertir bits
+    addi $t2, $t2, 1  # sumar 1 para obtener el valor absoluto
+
+bin_is_positive_base10:
+    # convertir binario en complemento a 2 a decimal
+loop_bin_to_dec_base10:
+    beqz $t2, bin_end_loop_base10
+    li $t6, 2
+    div $t2, $t6
+    mfhi $t7
+    add $t4, $t4, $t7  # agregar el bit menos significativo al resultado decimal
+    mflo $t2
+    sll $t4, $t4, 1  # desplazar el resultado decimal una posición a la izquierda
+    j loop_bin_to_dec_base10
+
+bin_end_loop_base10:
+    # agregar el signo al resultado decimal
+    beqz $t5, bin_end_function_base10
+    li $t6, -1
+    add $t4, $t4, $t6  # agregar el signo al resultado decimal
+
+bin_end_function_base10:
+    move $t3, $t4
+    jr $ra  # return from function
+
+bin_complement_to_octal:
+    li $t4, 0       # resultado octal
+    li $t5, 0       # signo (1 si es negativo, 0 si es positivo)
+
+    # obtener el signo del número binario en complemento a 2
+    blt $t2, $zero, bin_is_negative_octal
+    j bin_is_positive_octal
+
+bin_is_negative_octal:
+    li $t5, 1       # signo negativo
+    nor $t2, $t2, $zero  # invertir bits
+    addi $t2, $t2, 1  # sumar 1 para obtener el valor absoluto
+
+bin_is_positive_octal:
+    # convertir binario en complemento a 2 a octal
+loop_bin_to_octal:
+    beqz $t2, bin_end_loop_octal
+    li $t6, 8
+    div $t2, $t6
+    mfhi $t7
+    li $t8, 0x3  # máscara para obtener 3 bits (octal)
+    and $t7, $t7, $t8
+    sll $t7, $t7, 2  # desplazar los 3 bits a la posición correcta
+    or $t4, $t4, $t7  # agregar los 3 bits al resultado octal
+    mflo $t2
+    j loop_bin_to_octal
+
+bin_end_loop_octal:
+    # agregar el signo al resultado octal
+    beqz $t5, bin_end_function_octal
+    li $t6, '-'
+    or $t4, $t4, $t6  # agregar el signo al resultado octal
+
+bin_end_function_octal:
+    move $t3, $t4
+    jr $ra  # return from functionresult
+
+bin_complement_to_hex:
+    li $t4, 0       # resultado hexadecimal
+    li $t5, 0       # signo (1 si es negativo, 0 si es positivo)
+
+    # obtener el signo del número binario en complemento a 2
+    blt $t2, $zero, bin_is_negative_hex
+    j bin_is_positive_hex
+
+bin_is_negative_hex:
+    li $t5, 1       # signo negativo
+    nor $t2, $t2, $zero  # invertir bits
+    addi $t2, $t2, 1  # sumar 1 para obtener el valor absoluto
+
+bin_is_positive_hex:
+    # convertir binario en complemento a 2 a hexadecimal
+loop_bin_to_hex:
+    beqz $t2, bin_end_loop_hex
+    li $t6, 16
+    div $t2, $t6
+    mfhi $t7
+    li $t8, 0xF  # máscara para obtener 4 bits (hexadecimal)
+    and $t7, $t7, $t8
+    sll $t7, $t7, 4  # desplazar los 4 bits a la posición correcta
+    or $t4, $t4, $t7  # agregar los 4 bits al resultado hexadecimal
+    mflo $t2
+    j loop_bin_to_hex
+
+bin_end_loop_hex:
+    # agregar el signo al resultado hexadecimal
+    beqz $t5, bin_end_function_hex
+    li $t6, '-'
+    or $t4, $t4, $t6  # agregar el signo al resultado hexadecimal
+
+bin_end_function_hex:
+    move $t3, $t4
+    jr $ra  # return from function
+
+print_result:
+    # Imprimir resultado
+    la $a0, resultado_msg
+    li $v0, 4
+    syscall
+    move $a0, $t3
+    li $v0, 1
+    syscall
